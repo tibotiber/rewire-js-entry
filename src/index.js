@@ -33,75 +33,79 @@ const replacePlugin = (plugins, nameMatcher, newPlugin) => {
   return nextPlugins;
 };
 
-function createRewire(config, env, params) {
-  if (!params.entry || !params.entry.length) return; // todo: checkme!
+function createRewireFunction(params) {
+  function rewireEntry (config, env) {
+    if (!params.entry || !params.entry.length) return; // todo: checkme!
 
-  const isProd = env !== 'development';
+    const isProd = env !== 'development';
 
-  const entries = [].concat(params.entry);
-  const bundles = entries.map(entry => {
-    const ext = entry.split('.').pop();
-    return entry.replace('.' + ext, '');
-  });
+    const entries = [].concat(params.entry);
+    const bundles = entries.map(entry => {
+      const ext = entry.split('.').pop();
+      return entry.replace('.' + ext, '');
+    });
 
-  bundles.forEach((bundle, idx) => {
-    paths[`app${capitalize(bundle)}Js`] = `${paths.appSrc}/${entries[idx]}`;
-  });
+    bundles.forEach((bundle, idx) => {
+      paths[`app${capitalize(bundle)}Js`] = `${paths.appSrc}/${entries[idx]}`;
+    });
 
-  function getHtmlPlugin(bundle, isProd) {
-    const opts = Object.assign({
-      inject: true,
-      template: paths.appHtml,
-      // note: 2.x adds optimization with 'vendors' and 'runtime~bundle' in chunks
-      chunks: ['vendors', 'runtime~' + bundle, bundle],
-      filename: bundle + '.html',
-    }, isProd ? { minify: Object.assign(defaultMinify, params.minify) } : {});
+    function getHtmlPlugin(bundle, isProd) {
+      const opts = Object.assign({
+        inject: true,
+        template: paths.appHtml,
+        // note: 2.x adds optimization with 'vendors' and 'runtime~bundle' in chunks
+        chunks: ['vendors', 'runtime~' + bundle, bundle],
+        filename: bundle + '.html',
+      }, isProd ? { minify: Object.assign(defaultMinify, params.minify) } : {});
 
-    return new HtmlWebpackPlugin(opts);
+      return new HtmlWebpackPlugin(opts);
+    }
+
+    config.entry = bundles.reduce((acc, bundle) => {
+      acc[bundle] = [].concat(
+        isProd ? [] : require.resolve('react-dev-utils/webpackHotDevClient'),
+        paths[`app${capitalize(bundle)}Js`]
+      );
+      return acc;
+    }, {});
+
+    config.output.filename = isProd ? 'static/js/[name].[contenthash:8].js' : 'static/js/[name].bundle.js';
+
+    // initial HtmlWebpackPlugin for `index.html`
+    config.plugins = replacePlugin(config.plugins, (name) => /HtmlWebpackPlugin/i.test(name), getHtmlPlugin(bundles[0], isProd));
+    // HtmlWebpackPlugin for other *.html
+    bundles.slice(1).forEach(bundle => {
+      config.plugins.push(getHtmlPlugin(bundle, isProd));
+    });
+
+    // fix manifest, see https://github.com/timarney/react-app-rewired/issues/421
+    const multiEntryManifestPlugin = new ManifestPlugin({
+      fileName: 'asset-manifest.json',
+      publicPath: isProd ? paths.servedPath : '/',
+      generate: (seed, files, entrypoints) => {
+        const manifestFiles = files.reduce((manifest, file) => {
+          manifest[file.name] = file.path;
+          return manifest;
+        }, seed);
+
+        const entrypointFiles = {};
+        Object.keys(entrypoints).forEach(entrypoint => {
+          entrypointFiles[entrypoint] = entrypoints[entrypoint].filter(fileName => !fileName.endsWith('.map'));
+        });
+
+        return {
+          files: manifestFiles,
+          entrypoints: entrypointFiles,
+        };
+      },
+    });
+
+    config.plugins = replacePlugin(config.plugins, (name) => /ManifestPlugin/i.test(name), multiEntryManifestPlugin);
+
+    return config;
   }
 
-  config.entry = bundles.reduce((acc, bundle) => {
-    acc[bundle] = [].concat(
-      isProd ? [] : require.resolve('react-dev-utils/webpackHotDevClient'),
-      paths[`app${capitalize(bundle)}Js`]
-    );
-    return acc;
-  }, {});
-
-  config.output.filename = isProd ? 'static/js/[name].[contenthash:8].js' : 'static/js/[name].bundle.js';
-
-  // initial HtmlWebpackPlugin for `index.html`
-  config.plugins = replacePlugin(config.plugins, (name) => /HtmlWebpackPlugin/i.test(name), getHtmlPlugin(bundles[0], isProd));
-  // HtmlWebpackPlugin for other *.html
-  bundles.slice(1).forEach(bundle => {
-    config.plugins.push(getHtmlPlugin(bundle, isProd));
-  });
-
-  // fix manifest, see https://github.com/timarney/react-app-rewired/issues/421
-  const multiEntryManifestPlugin = new ManifestPlugin({
-    fileName: 'asset-manifest.json',
-    publicPath: isProd ? paths.servedPath : '/',
-    generate: (seed, files, entrypoints) => {
-      const manifestFiles = files.reduce((manifest, file) => {
-        manifest[file.name] = file.path;
-        return manifest;
-      }, seed);
-
-      const entrypointFiles = {};
-      Object.keys(entrypoints).forEach(entrypoint => {
-        entrypointFiles[entrypoint] = entrypoints[entrypoint].filter(fileName => !fileName.endsWith('.map'));
-      });
-
-      return {
-        files: manifestFiles,
-        entrypoints: entrypointFiles,
-      };
-    },
-  });
-
-  config.plugins = replacePlugin(config.plugins, (name) => /ManifestPlugin/i.test(name), multiEntryManifestPlugin);
-
-  return config;
+  return rewireEntry
 }
 
-module.exports = createRewire;
+module.exports = createRewireFunction;
