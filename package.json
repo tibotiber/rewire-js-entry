@@ -1,24 +1,24 @@
 {
-  "name": "rewire-entry",
+  "name": "rewire-js-entry",
   "version": "2.0.0",
-  "description": "Rewire to change entry points of create-react-app",
+  "description": "Rewire to change JS entry points of create-react-app",
   "main": "src/index.js",
   "scripts": {},
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tadatuta/rewire-entry.git"
+    "url": "git+https://github.com/tibotiber/rewire-js-entry.git"
   },
   "keywords": [
     "create-react-app",
     "react",
     "react-app-rewired"
   ],
-  "author": "Vladimir Grinenko <i@tadatuta.com>",
+  "author": "Thibaut Tiberghien <thibaut@smplrspace.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/tadatuta/rewire-entry/issues"
+    "url": "https://github.com/tibotiber/rewire-js-entry/issues"
   },
-  "homepage": "https://github.com/tadatuta/rewire-entry#readme",
+  "homepage": "https://github.com/tibotiber/rewire-js-entry#readme",
   "dependencies": {},
   "peerDependencies": {
     "html-webpack-plugin": "^4.0.0",
