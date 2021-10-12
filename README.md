@@ -2,7 +2,7 @@
 
 Rewire for [react-app-rewired](https://github.com/timarney/react-app-rewired) to change JS entry points of [create-react-app](https://github.com/facebook/create-react-app).
 
-This is a fork from https://github.com/tadatuta/rewire-entry adding compatibility with react-scripts 3.
+This is a fork from [rewire-entry](https://github.com/tadatuta/rewire-entry) adding compatibility with react-scripts 3.
 
 ## Usage
 
