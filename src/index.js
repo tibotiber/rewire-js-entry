@@ -102,6 +102,11 @@ function createRewireFunction(params) {
 
     config.plugins = replacePlugin(config.plugins, (name) => /ManifestPlugin/i.test(name), multiEntryManifestPlugin);
 
+    // no runtime chunks that need to be loaded separately
+    config.optimization.runtimeChunk = false
+    // no shared chunks that need to be loaded separately 
+    config.optimization.splitChunks.chunks = 'async'
+
     return config;
   }
 
